@@ -44,23 +44,29 @@ img{
 <script src="jquery-1.7.min.js" type="text/javascript"></script>
   <script src="jquery.mobile-1.4.5.min.js"></script>
   <script src="jquery.touchSwipe.min.js"></script>
-  
+  <meta name="viewport" content="width=500, initial-scale=1">
+
 <script>
- var screenX = 0;
+ var screenX = 640;
  
- function updateScreens(offset, anim) {
+ function updateScreens(offset, permanent, anim) {
+	if(permanent) {
+		offset = Math.max(offset, 0);
+		offset = Math.min(offset, 640*2);
+		screenX = offset;
+	}
 	var cssFunc = anim ? 'animate' : 'css';
 	easing = 'swing';
 	if(anim) {
-		$('#files').animate({left : (-offset - 640) + 'px'}, 400, easing);
-		$('#books').animate({left : (-offset + 640) + 'px'}, 400, easing);
-		$('#main').animate({left : (-offset) + 'px'}, 400, easing);
+		$('#files').animate({left : (-offset ) + 'px'}, 400, easing);
+		$('#main').animate({left : (-offset + 640 * 1) + 'px'}, 400, easing);
+		$('#books').animate({left : (-offset + 640 * 2) + 'px'}, 400, easing);
 	} else {
-		$('#files').animate({left : (-offset - 640) + 'px'});
-		$('#books').css({left : (-offset + 640) + 'px'});
-		$('#main').css({left : (-offset) + 'px'});
+		$('#files').css({left : (-offset) + 'px'});
+		$('#main').css({left : (-offset + 640 * 1) + 'px'});
+		$('#books').css({left : (-offset + 640 * 2) + 'px'});
 	}
- }
+}
  
  $(function() {      
   //Enable swiping...
@@ -68,19 +74,18 @@ img{
 	//Generic swipe handler for all directions
 	swipe:function(event, direction, distance, duration, fingerCount, fingerData) {
 		if(direction == 'left')
-			screenX += 640;
+			updateScreens(screenX + 640, true, true);
 		else
-			screenX -= 640;
-		updateScreens(screenX, true);
+			updateScreens(screenX - 640, true, true);
 	},
 	swipeStatus:function(event, phase, direction, distance, duration, fingers) {
 		if(direction == 'left')
-			updateScreens(screenX + distance);
+			updateScreens(screenX + distance, false);
 		else
-			updateScreens(screenX - distance);
+			updateScreens(screenX - distance, false);
 		
 		if(phase == 'cancel') {
-			updateScreens(screenX, true);
+			updateScreens(screenX, true, true);
 		}
 	},
 	//Default is 75px, set to 0 for demo so any distance triggers swipe
@@ -93,16 +98,18 @@ img{
 <body>
 <div id="outer">
 	<div id="files">
-		<h1>Filess</h1>
+		<h1>Files</h1>
+		Blah blah blah, people go here
 	</div>
 	<div id="main">
-		<h1>Bibliophile</h1>
+		<h1>BiblioFile</h1>
 		<img src="logo.png"/><br/>
-		<h2>&#9664; Books</h2>
-		<h2>Files &#9654; </h2>
+		<h2>&#9664; Files</h2>
+		<h2>Books &#9654; </h2>
 	</div>
 	<div id="books">
 		<h1>Books</h1>
+		Blah blah blah, books go here
 	</div>
 </div>
 </body>
