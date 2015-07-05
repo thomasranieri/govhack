@@ -80,6 +80,10 @@ table, input {
 	width:100%;
 	height:80px;
 }
+
+body {
+	margin : 0px;
+}
 </style>
 <script src="jquery-1.7.min.js" type="text/javascript"></script>
   <script src="jquery.mobile-1.4.5.min.js"></script>
@@ -201,12 +205,19 @@ function loadFindPeople() {
 		  data: {},
 		  success: function(data) {
 				users = data.getUsers;
+				$('#findPeople .person').not('#person').remove();
 				users.map(function(user){
 					if(user.id == userID) {
 						$('#name').val(user.name);
 						$('#description').text(user.description);
 						$('#bestbook').val(user.below);
 					}
+					var newPerson = $('#person').clone().attr('id', '');
+					newPerson.find('.txtName').text(user.name);
+					newPerson.find('.txtDescription').text(user.description);
+					newPerson.find('.txtBestBook').text(user.bestbook);
+					newPerson.show();
+					newPerson.appendTo('#findPeople');
 				});
 			},
 		  dataType: 'json'
@@ -244,6 +255,12 @@ function loadFindPeople() {
 	});
 		
 	});
+	
+	$('#btnBack').click(function(){
+			$('.page').fadeOut();
+			$('#files, #main, #books').fadeIn();
+			$('#btnBack').fadeOut();
+	});
   //Enable swiping...
   $("#outer").swipe( {
 	//Generic swipe handler for all directions
@@ -275,16 +292,19 @@ function loadFindPeople() {
 		case 'btnLibraries':
 			$('.page').fadeOut();
 			$('#libraries').fadeIn();
+			$('#btnBack').fadeIn();
 			loadMaps();
 			break;
 		case 'btnFindPeople':
 			$('.page').fadeOut();
 			$('#findPeople').fadeIn();
+			$('#btnBack').fadeIn();
 			loadFindPeople();
 			break;
 		case 'btnUpdateProfile':
 			$('.page').fadeOut();
 			$('#updateProfile').fadeIn();
+			$('#btnBack').fadeIn();
 			loadFindPeople();
 			break;
 		}
@@ -298,13 +318,15 @@ function loadFindPeople() {
 			updateScreens(screenX + 640, true, true);
 	}
   });
+			$('.page').fadeOut();
+			$('#findPeople').fadeIn();
+			$('#btnBack').fadeIn();
+			loadFindPeople();
 });
 
 </script>
 </head>
 <body>
-<div id="back">
-</div>
 <div id="outer">
 	<div id="files" class="page">
 		<h1>Files</h1>
@@ -328,11 +350,14 @@ function loadFindPeople() {
 		<div id="map-canvas"></div>
 	</div>
 	<div id="findPeople" class="page" style="display:none">
-		<div id="person">
-		Tom
-		<div id="txtDescription">
-		I like books.
-		</div>
+		<div id="person" class="person" style="display:none;">
+			<div class="txtName">
+			</div>
+			<div class="txtDescription">
+			</div>
+			<div class="txtBestBook">
+			</div>
+			<img src="users/1.png" />
 		</div>
 	</div>
 	<div id="updateProfile" class="page" style="display:none">
@@ -345,5 +370,6 @@ function loadFindPeople() {
 	<button name="btnUpdate" id="btnUpdate" class="tile">Update</button>
 	</div>
 </div>
+<img id="btnBack" src="back.png" width=100 style="position:absolute; bottom:0px; left:0px; display:none;"/>
 </body>
 </html>
