@@ -28,6 +28,23 @@ if(isset($_GET['updateProfile'])) {
 	$returnJSON['updateProfile'] = true;
 }
 
+
+if(isset($_GET['autocompleteBook'])) {
+	$statement = $db->prepare('SELECT * from books WHERE title LIKE ?');
+	$statement->execute(array($_GET['term'].'%'));
+	$rowArr = array();
+	while ($row = $statement->fetch(PDO::FETCH_ASSOC, PDO::FETCH_ORI_NEXT)) {
+		$rowJSON = array(
+			"id" => $row['title'],
+			"label" => $row['title'],
+			"value" => $row['title']);
+		$rowArr[] = $rowJSON;
+	}
+	header('Content-Type: application/json');
+	echo json_encode($rowArr);
+	exit(0);
+}
+
 if(isset($_GET['getUsers'])) {
 	$statement = $db->prepare('SELECT * from users');
 	$statement->execute();
@@ -36,6 +53,16 @@ if(isset($_GET['getUsers'])) {
 		$rowArr[] = $row;
 	}
 	$returnJSON['getUsers'] = $rowArr;
+}
+
+if(isset($_GET['getBooks'])) {
+	$statement = $db->prepare('SELECT * from books ORDER BY RAND() LIMIT 100');
+	$statement->execute();
+	$rowArr = array();
+	while ($row = $statement->fetch(PDO::FETCH_ASSOC, PDO::FETCH_ORI_NEXT)) {
+		$rowArr[] = $row;
+	}
+	$returnJSON['getBooks'] = $rowArr;
 }
 
 
