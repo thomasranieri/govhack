@@ -11,7 +11,7 @@ overflow:hidden;
 position:relative;
 }
 
-#main, #books, #files {
+.page {
 	width:640px;
 	height:960px;
 	background:#f0f0f0;
@@ -19,7 +19,6 @@ position:relative;
 	text-align:center;
 	position:absolute;
 }
-
 #books {
 	left:640px;
 }
@@ -38,16 +37,64 @@ h2 {
 	margin: 20px auto;
 }
 
-img{
+.tile {
+	width : 200px;
+	height : 200px;
+	background : #f7f7f7;
+	padding : 20px;
+	margin : 40px;
+	float : left;
+	font-size : 30px;
+	position:relative;
+	display:table;
+	
+	-webkit-box-shadow: 0px 0px 52px -2px rgba(0,0,0,0.65);
+-moz-box-shadow: 0px 0px 52px -2px rgba(0,0,0,0.65);
+box-shadow: 0px 0px 52px -2px rgba(0,0,0,0.65);
+}
+
+.tileinner {
+	vertical-align:middle;
+	display:table-cell;
+}
+
+#map-canvas {
+	width:100%;
+	height:100%;
+}
+
+#btnUpdate {
+	padding:10px;
+	font-size:50px;
+	height:100px;
+	display:block;
+	float:none;
+	margin: 20px auto;
+}
+
+table, input {
+	font-size:30px;
+}
+
+#description {
+	width:100%;
+	height:80px;
 }
 </style>
 <script src="jquery-1.7.min.js" type="text/javascript"></script>
   <script src="jquery.mobile-1.4.5.min.js"></script>
   <script src="jquery.touchSwipe.min.js"></script>
+    <script type="text/javascript"
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA8LGvFcIvM67Ef82ZWxm3hay12TF-gKZg&libraries=geometry">
+    </script>
   <meta name="viewport" content="width=500, initial-scale=1">
 
 <script>
- var screenX = 640;
+var screenX = 640;
+var map;
+var libraryMarkers = [];
+var directionsService = new google.maps.DirectionsService();
+var userLocation = { coords : { lat : -34.397, lng : 150.644 }, accuracy  : 100000 };
  
  function updateScreens(offset, permanent, anim) {
 	if(permanent) {
@@ -67,8 +114,136 @@ img{
 		$('#books').css({left : (-offset + 640 * 2) + 'px'});
 	}
 }
+var positionLoaded = false;
+var markersLoaded = false;
+
+function onGetPosition(position) {
+	userLocation.coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+	map.setCenter ( userLocation.coords );
+	positionLoaded = true;
+	updateMap();
+}
+
+function updateMap() {
+	if(!positionLoaded)
+		return;
+	if(!markersLoaded)
+		return;
+		
+	directionsDisplay = new google.maps.DirectionsRenderer();
+	  var chicago = new google.maps.LatLng(-34.397, 150.644);
+	  var mapOptions = {
+		zoom:7,
+		center: chicago
+	  }
+	  
+	  var closestLibrary = libraryMarkers.reduce(function(prev, curr){
+		var distance = google.maps.geometry.spherical.computeDistanceBetween(curr.getPosition(), userLocation.coords);
+		if(distance < prev.distance) {
+			return { marker : curr, distance : distance};
+		} else
+			return prev;
+	  }, {distance : 9999999999999999});
+	  
+	  var request = {
+		origin: userLocation.coords.lat() + ',' + userLocation.coords.lng(),
+		destination: closestLibrary.marker.getPosition(),
+		travelMode: google.maps.TravelMode.DRIVING
+	  };
+	  
+	  
+	  directionsService.route(request, function(result, status) {
+		if (status == google.maps.DirectionsStatus.OK) {
+		  directionsDisplay.setDirections(result);
+		}
+	  });
+	  directionsDisplay.setMap(map);
+}
+
+function loadMaps() {
+	
+	var userLocation = { coords : { lat : -34.397, lng : 150.644 }, accuracy  : 100000 };
+	if (navigator.geolocation) {
+		navigator.geolocation.getCurrentPosition(onGetPosition);
+	} else {
+		console.log("Geolocation is not supported by this browser.");
+	}
+	var mapOptions = {
+	  center: { lat: -34.397, lng: 150.644},
+	  zoom: 13
+	};
+	map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+	
+	$.ajax({
+		  type: "POST",
+		  url: 'ajax.php?getLibraries',
+		  data: {},
+		  success: function(data) {
+			libraryMarkers = data.getLibraries.map(function(library) {
+				return new google.maps.Marker({
+					position: new google.maps.LatLng(library.YCoord,library.XCoord),
+					map: map,
+					title: library.NAME
+				})
+			});
+			markersLoaded = true;
+			updateMap();
+		  },
+		  dataType: 'json'
+	});
+}
+var users = [];
+
+function loadFindPeople() {
+	$.ajax({
+		  type: "POST",
+		  url: 'ajax.php?getUsers',
+		  data: {},
+		  success: function(data) {
+				users = data.getUsers;
+				users.map(function(user){
+					if(user.id == userID) {
+						$('#name').val(user.name);
+						$('#description').text(user.description);
+						$('#bestbook').val(user.below);
+					}
+				});
+			},
+		  dataType: 'json'
+	});
+}
  
- $(function() {      
+ var userID = -1;
+ 
+ $(function() {
+ 
+	$.ajax({
+		  type: "POST",
+		  url: 'ajax.php?getMyID',
+		  data: {},
+		  success: function(data) {
+				userID = data.getMyID;
+				loadFindPeople();
+			},
+		  dataType: 'json'
+	});
+	
+	$('#btnUpdate').click(function(){
+	$.ajax({
+		  type: "POST",
+		  url: 'ajax.php?updateProfile',
+		  data: {name : $('#name').val(), description : $('#description').val(), bestbook : $('#bestbook').val()},
+		  success: function(data) {
+				if(data.updateProfile == true)
+					alert ('Details updated successfully');
+				else
+					alert ('Details couldnn\'t be uploaded.<br/>Blame Tom.');
+				loadFindPeople();
+			},
+		  dataType: 'json'
+	});
+		
+	});
   //Enable swiping...
   $("#outer").swipe( {
 	//Generic swipe handler for all directions
@@ -79,6 +254,8 @@ img{
 			updateScreens(screenX - 640, true, true);
 	},
 	swipeStatus:function(event, phase, direction, distance, duration, fingers) {
+		if($(event.target).hasClass('tileinner'))
+			return;
 		if(direction == 'left')
 			updateScreens(screenX + distance, false);
 		else
@@ -91,25 +268,81 @@ img{
 	//Default is 75px, set to 0 for demo so any distance triggers swipe
 	 threshold:100
   });
+  
+  $('.tile').swipe({
+	tap : function(event, target) {
+		switch(target.parentElement.id) {
+		case 'btnLibraries':
+			$('.page').fadeOut();
+			$('#libraries').fadeIn();
+			loadMaps();
+			break;
+		case 'btnFindPeople':
+			$('.page').fadeOut();
+			$('#findPeople').fadeIn();
+			loadFindPeople();
+			break;
+		case 'btnUpdateProfile':
+			$('.page').fadeOut();
+			$('#updateProfile').fadeIn();
+			loadFindPeople();
+			break;
+		}
+	}
+  });
+  $('body').keydown(function(e){
+	if(e.keyCode == 37) { //left arrow
+			updateScreens(screenX - 640, true, true);
+	}
+	if(e.keyCode == 39) { //right arrow
+			updateScreens(screenX + 640, true, true);
+	}
+  });
 });
 
 </script>
 </head>
 <body>
+<div id="back">
+</div>
 <div id="outer">
-	<div id="files">
+	<div id="files" class="page">
 		<h1>Files</h1>
-		Blah blah blah, people go here
+		<div class="tile" id="btnUpdateProfile"><span class="tileinner">Update my profile</span></div>
+		<div class="tile" id="btnFindPeople"><span class="tileinner">Find people</span></div>
 	</div>
-	<div id="main">
+	<div id="main" class="page">
 		<h1>BiblioFile</h1>
 		<img src="logo.png"/><br/>
-		<h2>&#9664; Files</h2>
-		<h2>Books &#9654; </h2>
+		<h2><img src="left.png" height=60 style="margin-bottom: -5px 0px 0px 0px"/> Files</h2>
+		<h2>Books <img src="right.png" height=60 style="margin-bottom:-5px"/> </h2>
 	</div>
-	<div id="books">
+	<div id="books" class="page">
 		<h1>Books</h1>
-		Blah blah blah, books go here
+		<div class="tile" id="btnBookRecommend"><span class="tileinner">Recommend me a book</span></div>
+		<div class="tile"><span class="tileinner">Search the catalogue</span></div>
+		<div class="tile"><span class="tileinner">Books I'm reading</span></div>
+		<div class="tile" id="btnLibraries"><span class="tileinner">Nearby libraries</span></div>
+	</div>
+	<div id="libraries" class="page" style="display:none">
+		<div id="map-canvas"></div>
+	</div>
+	<div id="findPeople" class="page" style="display:none">
+		<div id="person">
+		Tom
+		<div id="txtDescription">
+		I like books.
+		</div>
+		</div>
+	</div>
+	<div id="updateProfile" class="page" style="display:none">
+	<h1>Update your profile</h1>
+	<table>
+	<tr><td>Name:</td><td><input name="name" id="name"/></td></tr>
+	<tr><td>Description:</td><td><textarea name="description" id="description"></textarea></td></tr>
+	<tr><td>Best Book:</td><td><input name="bestbook" id="bestbook"/></td></tr>
+	</table>
+	<button name="btnUpdate" id="btnUpdate" class="tile">Update</button>
 	</div>
 </div>
 </body>

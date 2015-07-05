@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      html, body, #map-canvas { height: 100%; margin: 0; padding: 0;}
+    </style>
+    <script type="text/javascript"
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA8LGvFcIvM67Ef82ZWxm3hay12TF-gKZg">
+    </script>
+<script src="jquery-1.7.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+	var map;
+	var directionsService = new google.maps.DirectionsService();
+      function initialize() {
+		var userLocation = { coords : { lat : -34.397, lng : 150.644 }, accuracy  : 100000 };
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(onGetPosition);
+		} else {
+			console.log("Geolocation is not supported by this browser.");
+		}
+		
+		function onGetPosition(position) {
+			userLocation.coords = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+			map.setCenter ( userLocation.coords );
+			
+			
+			directionsDisplay = new google.maps.DirectionsRenderer();
+			  var chicago = new google.maps.LatLng(-34.397, 150.644);
+			  var mapOptions = {
+				zoom:7,
+				center: chicago
+			  }
+			  
+			  var request = {
+				origin: userLocation.coords.lat + ',' + userLocation.coords.lng,
+				destination:'Elizabeth, Australia',
+				travelMode: google.maps.TravelMode.DRIVING
+			  };
+			  
+			  directionsService.route(request, function(result, status) {
+				if (status == google.maps.DirectionsStatus.OK) {
+				  directionsDisplay.setDirections(result);
+				}
+			  });
+			  directionsDisplay.setMap(map);
+		}
+		  
+        var mapOptions = {
+          center: { lat: -34.397, lng: 150.644},
+          zoom: 13
+        };
+        map = new google.maps.Map(document.getElementById('map-canvas'),
+            mapOptions);
+			
+	$.ajax({
+		  type: "POST",
+		  url: 'ajax.php?getLibraries',
+		  data: {},
+		  success: function(data) {
+			var markers = [];
+			var markers = data.getLibraries.map(function(library) {
+				return new google.maps.Marker({
+					position: new google.maps.LatLng(library.YCoord,library.XCoord),
+					map: map,
+					title: library.NAME
+				})
+			});
+		  },
+		  dataType: 'json'
+		});
+      }
+      google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+  </head>
+  <body>
+<div id="map-canvas"></div>
+  </body>
+</html>
