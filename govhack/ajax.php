@@ -1,5 +1,9 @@
 <?php
-$db=new PDO('mysql:dbname=govhack;host=127.0.0.1','govhack', '');
+$localTesting = ($_SERVER['SERVER_SOFTWARE'] == "Apache/2.4.9 (Win64) PHP/5.5.12");
+if($localTesting)
+	$db=new PDO('mysql:dbname=govhack;host=127.0.0.1','govhack', '');
+else
+	$db=new PDO('mysql:dbname=govhack;host=petercv.db','govhack', '');
 
 session_set_cookie_params(60*60*24*365*10);
 session_start();
